@@ -14,6 +14,10 @@
 #     only indicates the backup to be made but not apply them.
 ###############################################################################
 
+#TODO
+#> Turn the third argument functional
+#> Compare origin and destination after the backup and print a message
+
 #Read the arguments
 if [ $# -ne 3 ] 
 then
@@ -45,23 +49,71 @@ then
 fi
 
 NOW=$(date +'%Y%m%d%H%M')
-TEMP_FROM_DIR=./temp-${NOW}
-TEMP_FROM_FILE=${NOW}-tempFile.txt
+TEMP_DIR=temp-${NOW}
+TEMP_FILE=${NOW}-tempFile.txt
+
+#Create a temp directory at the destination
+cd ${DESTINATION_DIR}
+pwd
+DESTINATION_ABS_DIR=$PWD
+
+if [ ! -d ./${TEMP_DIR} ] 
+then
+    mkdir ${TEMP_DIR}
+    cd ${TEMP_DIR}
+    TEMP_ABS_DIR=$PWD
+else
+    echo "Temporary destination directory ${TEMP_DIR} has to be created but it already exists. Please try again in a minute."
+    exit 1
+fi
 
 #List all files and folders from origin
 cd ${ORIGIN_DIR}
 pwd
 
-#Create a temp FROM dir
-if [ ! -d ${TEMP_FROM_DIR} ] 
-then
-    mkdir ${TEMP_FROM_DIR}
-else
-    echo "Temporary FROM directory ${TEMP_FROM_DIR} has to be created but it already exists. Please try again in a minute."
-    exit 1
-fi
+find -mindepth 1 -type d > ${TEMP_ABS_DIR}/${TEMP_FILE}
+find -type f >> ${TEMP_ABS_DIR}/${TEMP_FILE}
 
-find -mindepth 1 -type d > ${TEMP_FROM_DIR}/${TEMP_FROM_FILE}
 
-#TODO: continue
+#Backup files
+while read LINE
+do 
+    #Remove the first two characters if they match './'
+    if [ ${LINE:0:2} == "./" ]
+    then
+        LINE_CONTENT=${LINE:2}
+    else
+    	LINE_CONTENT=${LINE}
+    fi
 
+    #Create directory at destination in case it does not exist
+    if [ -d ${LINE} ]
+    then
+        if [ ! -d ${DESTINATION_ABS_DIR}/${LINE_CONTENT} ]
+        then
+            mkdir ${DESTINATION_ABS_DIR}/${LINE_CONTENT}
+            echo "New directory [${LINE_CONTENT}] created at destination."
+        fi
+    else
+    	#Compare files on origin and destination
+    	if [ ! -f ${DESTINATION_ABS_DIR}/${LINE_CONTENT} ]
+    	then
+    	    #Copy new file to destination
+            cp -p ${LINE} ${DESTINATION_ABS_DIR}/${LINE_CONTENT%/*}
+            echo "New file [${LINE_CONTENT}] created at destination."
+        else
+        	if [ -f ${DESTINATION_ABS_DIR}/${LINE_CONTENT} ]
+        	then
+        	    if [ $(stat -c %Y ${LINE}) != $(stat -c %Y ${DESTINATION_ABS_DIR}/${LINE_CONTENT}) ]
+        	    then
+        	        cp -fp ${LINE} ${DESTINATION_ABS_DIR}/${LINE_CONTENT%/*}
+                    echo "Existing file [${LINE_CONTENT}] updated at destination."
+                fi
+            fi
+        fi
+    fi
+done < ${TEMP_ABS_DIR}/${TEMP_FILE}
+
+rm ${DESTINATION_ABS_DIR}/${TEMP_DIR}/${TEMP_FILE}
+rmdir ${DESTINATION_ABS_DIR}/${TEMP_DIR}
+echo "Temp file and directory removed"
