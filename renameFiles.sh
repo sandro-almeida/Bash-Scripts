@@ -8,9 +8,11 @@
 # Arguments:
 #  <OriginDirectory>: name of the folder where the files will be renamed.
 #  <NewFilePatternName>: new pattern name to be applied to the files.
-#  <ApplyChanges>: if set to 'S', then the changes will be applied, otherwise
+#  <ApplyChanges>: if set to 'Y', then the changes will be applied, otherwise
 #     only indicates the changes to be made but not apply them.
 ###############################################################################
+
+echo "Starting script ${0} at $(date +'%Y-%m-%d %H:%M:%S.%3N')"
 
 #Read the arguments
 if [ $# -ne 3 ] 
@@ -72,7 +74,7 @@ do
     SUFFIX=$(printf "%0${SUFFIX_LENGTH}.0f" ${I})
     NEW_NAME=${FILE_PATTERN}${SUFFIX}.${EXTENSION}
 
-    if [ ${APPLY_CHANGES} == "S" ]
+    if [ ${APPLY_CHANGES} == "Y" ]
     then
         mv ${LINE} ${NEW_NAME}
     fi
@@ -80,7 +82,7 @@ do
 
 done < ${TEMP_DIR}/${TEMP_FILE}
 
-if [ ${APPLY_CHANGES} != "S" ]
+if [ ${APPLY_CHANGES} != "Y" ]
 then
     echo "Changes NOT applied !!!"
 fi
@@ -89,3 +91,5 @@ rm ${TEMP_DIR}/${TEMP_FILE}
 rmdir ${TEMP_DIR}
 echo "Temp files and directory removed"
 
+echo "Finishing script ${0} at $(date +'%Y-%m-%d %H:%M:%S.%3N')"
+exit 0
